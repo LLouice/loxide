@@ -29,7 +29,14 @@ pub enum TokenType<'t> {
     String(&'t str),
     Number(f64),
 
-    // Keywords
+    // keywords
+    Keyword(Keyword),
+
+    Eof,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Keyword {
     And,
     Class,
     Else,
@@ -46,22 +53,45 @@ pub enum TokenType<'t> {
     True,
     Var,
     While,
+}
 
-    Eof,
+impl Keyword {
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "and" => Some(Self::And),
+            "class" => Some(Self::Class),
+            "else" => Some(Self::Else),
+            "false" => Some(Self::False),
+            "fun" => Some(Self::Fun),
+            "for" => Some(Self::For),
+            "if" => Some(Self::If),
+            "nil" => Some(Self::Nil),
+            "or" => Some(Self::Or),
+            "print" => Some(Self::Print),
+            "return" => Some(Self::Return),
+            "super" => Some(Self::Super),
+            "this" => Some(Self::This),
+            "true" => Some(Self::True),
+            "var" => Some(Self::Var),
+            "while" => Some(Self::While),
+            _ => None,
+        }
+    }
 }
 
 // token with location information
+#[derive(Debug, Clone, Copy)]
 pub struct Token<'s> {
     pub token_type: TokenType<'s>,
-    pub lexme: &'s str,
+    pub lexeme: &'s str,
     pub line: usize,
 }
 
 impl<'s> Token<'s> {
-    pub fn new(token_type: TokenType<'s>, lexme: &'s str, line: usize) -> Self {
+    pub fn new(token_type: TokenType<'s>, lexeme: &'s str, line: usize) -> Self {
         Self {
             token_type,
-            lexme,
+            lexeme,
             line,
         }
     }
@@ -69,6 +99,6 @@ impl<'s> Token<'s> {
 
 impl<'s> std::fmt::Display for Token<'s> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?} {}", self.token_type, self.lexme)
+        write!(f, "{:?} {}", self.token_type, self.lexeme)
     }
 }

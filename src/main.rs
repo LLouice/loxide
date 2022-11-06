@@ -38,7 +38,6 @@ fn run_prompt() {
 }
 
 fn run(source: &str) {
-    println!("{source}");
     let mut lexer = Lexer::new(source);
     let tokens = lexer.scan_tokens();
     tokens.into_iter().for_each(|tok| println!("{tok}"));

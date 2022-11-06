@@ -1,4 +1,4 @@
-use crate::tokens::{Token, TokenType};
+use crate::tokens::{Keyword, Token, TokenType};
 
 pub struct Lexer<'s> {
     source: &'s str,
@@ -22,18 +22,16 @@ impl<'s> Lexer<'s> {
         }
     }
 
-    pub fn scan_tokens(&mut self) -> Vec<Token<'s>> {
-        let mut tokens = vec![];
-
+    pub fn scan_tokens(&mut self) -> &[Token<'s>] {
         while !self.is_at_end() {
             self.start = self.current;
             self.scan_token();
         }
 
         // Eof
-        tokens.push(Token::new(TokenType::Eof, "", self.line));
+        self.tokens.push(Token::new(TokenType::Eof, "", self.line));
 
-        tokens
+        &self.tokens
     }
 
     fn scan_token(&mut self) {
@@ -109,42 +107,74 @@ impl<'s> Lexer<'s> {
 
             x @ _ => {
                 // number
-                if Self::is_digit(x) {
-                    self.scan_number();
+                if self.scan_number(c) {
+                    return;
                 }
-                eprintln!("Unexpect character {} at line {}", x, self.line); // eprintln and skip it, not stop scanning for report all errors at once
+
+                // identifer then reserved word
+                if self.scan_ident_and_keyword(c) {
+                    return;
+                }
+
+                // eprintln and skip it, not stop scanning for report all errors at once
+                eprintln!(
+                    "Unexpect character {} at line {}, state: {}",
+                    x,
+                    self.line,
+                    self.pluck()
+                );
             }
         }
     }
 
     fn add_token(&mut self, token_type: TokenType<'s>) {
-        self.tokens.push(Token::new(
-            token_type,
-            &self.source[self.start..self.current],
-            self.line,
-        ));
+        let lexeme = self.pluck();
+        self.tokens.push(Token::new(token_type, lexeme, self.line));
     }
 
-    fn scan_number(&mut self) {
-        // must match the all happy path
-        // integer(pre '.') part
-        while Self::is_digit(self.peek()) {
-            self.advance();
+    fn scan_ident_and_keyword(&mut self, c: char) -> bool {
+        // start char
+        if c.is_ascii() || c == '_' {
+            let c = self.peek();
+            while c.is_ascii() || c == '_' || Self::is_digit(c) {
+                self.advance();
+            }
+            let ident = self.pluck();
+            if let Some(keyword) = Keyword::from_str(ident) {
+                self.add_token(TokenType::Keyword(keyword));
+            } else {
+                self.add_token(TokenType::Identifer(ident));
+            }
+            true
+        } else {
+            false
         }
-        // look for a fractional part and consume '.'
-        if self.peek() == '.' && Self::is_digit(self.peek_next()) {
-            self.advance();
+    }
+
+    fn scan_number(&mut self, c: char) -> bool {
+        if Self::is_digit(c) {
+            // must match the all happy path
+            // integer(pre '.') part
+            while Self::is_digit(self.peek()) {
+                self.advance();
+            }
+            // look for a fractional part and consume '.'
+            if self.peek() == '.' && Self::is_digit(self.peek_next()) {
+                self.advance();
+            }
+            // the fractional part
+            while Self::is_digit(self.peek()) {
+                self.advance();
+            }
+            // must have token, because we have match a digit then call this function
+            self.add_token(TokenType::Number(
+                self.pluck().parse().expect("parse number failed!"),
+            ));
+            eprintln!("get number, {:?}", self.tokens);
+            true
+        } else {
+            false
         }
-        // the fractional part
-        while Self::is_digit(self.peek()) {
-            self.advance();
-        }
-        // must have token, because we have match a digit then call this function
-        self.add_token(TokenType::Number(
-            self.source[self.start..self.current]
-                .parse()
-                .expect("parse number failed!"),
-        ));
     }
 
     fn is_digit(c: char) -> bool {
@@ -168,6 +198,11 @@ impl<'s> Lexer<'s> {
         // current at '"'
         let string = &self.source[self.start + 1..self.current];
         self.add_token(TokenType::String(string));
+    }
+
+    /// `'s` is must used! other is tied with the whole Token, not just source!
+    fn pluck(&self) -> &'s str {
+        &self.source[self.start..self.current]
     }
 
     fn advance_match(&mut self, expected: char) -> bool {
