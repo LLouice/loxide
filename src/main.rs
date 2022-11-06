@@ -18,9 +18,6 @@ fn main() {
     }
 }
 
-#[inline(always)]
-fn print_prompt() {}
-
 fn run_prompt() {
     let mut stdin = io::stdin().lock();
     let mut line = String::new();

@@ -85,15 +85,30 @@ impl<'s> Lexer<'s> {
                 self.add_token(token_type)
             }
 
+            // `/` for ['/', '//']
+            '/' => {
+                if self.advance_match('/') {
+                    // scanning util to EOL
+                    while self.peek() != '\n' && !self.is_at_end() {
+                        self.advance();
+                    }
+                } else {
+                    self.add_token(TokenType::Slash)
+                };
+            }
+
+            // skip whitespace
+            ' ' | '\r' | '\t' => {}
+            '\n' => {
+                self.line += 1;
+            }
+
+            // literal
+            // string
+            '"' => self.scan_string(),
+
             x @ _ => eprintln!("Unexpect character {} at line {}", x, self.line), // eprintln and skip it, not stop scanning for report all errors at once
         }
-    }
-
-    /// after call this function, return current char, and `self.current` is next position index
-    fn advance(&mut self) -> char {
-        let c = self.current_char();
-        self.current += 1;
-        c
     }
 
     fn add_token(&mut self, token_type: TokenType<'s>) {
@@ -102,6 +117,25 @@ impl<'s> Lexer<'s> {
             &self.source[self.start..self.current],
             self.line,
         ));
+    }
+
+    fn scan_string(&mut self) {
+        // in `""`
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() == '\n' {
+                self.line += 1
+            };
+            self.advance();
+        }
+
+        if self.is_at_end() {
+            eprintln!("Unterminated string.");
+            return;
+        }
+
+        // current at '"'
+        let string = &self.source[self.start + 1..self.current];
+        self.add_token(TokenType::String(string));
     }
 
     fn advance_match(&mut self, expected: char) -> bool {
@@ -119,8 +153,19 @@ impl<'s> Lexer<'s> {
         }
     }
 
-    fn is_at_end(&self) -> bool {
-        self.current >= self.source.len()
+    /// after call this function, return current char, and `self.current` is next position index
+    fn advance(&mut self) -> char {
+        let c = self.current_char();
+        self.current += 1;
+        c
+    }
+
+    fn peek(&self) -> char {
+        if self.is_at_end() {
+            '\0'
+        } else {
+            self.current_char()
+        }
     }
 
     fn current_char(&self) -> char {
@@ -129,5 +174,9 @@ impl<'s> Lexer<'s> {
 
     fn char_at(&self, index: usize) -> char {
         self.source.chars().nth(index).unwrap()
+    }
+
+    fn is_at_end(&self) -> bool {
+        self.current >= self.source.len()
     }
 }
