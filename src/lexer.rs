@@ -105,7 +105,7 @@ impl<'s> Lexer<'s> {
             // string
             '"' => self.scan_string(),
 
-            x @ _ => {
+            x => {
                 // number
                 if self.scan_number(c) {
                     return;
@@ -135,9 +135,13 @@ impl<'s> Lexer<'s> {
     fn scan_ident_and_keyword(&mut self, c: char) -> bool {
         // start char
         if c.is_ascii() || c == '_' {
-            let c = self.peek();
-            while c.is_ascii() || c == '_' || Self::is_digit(c) {
-                self.advance();
+            loop {
+                let c = self.peek();
+                if c.is_ascii_alphanumeric() || c == '_' {
+                    self.advance();
+                } else {
+                    break;
+                }
             }
             let ident = self.pluck();
             if let Some(keyword) = Keyword::from_str(ident) {
@@ -170,7 +174,6 @@ impl<'s> Lexer<'s> {
             self.add_token(TokenType::Number(
                 self.pluck().parse().expect("parse number failed!"),
             ));
-            eprintln!("get number, {:?}", self.tokens);
             true
         } else {
             false
@@ -200,7 +203,7 @@ impl<'s> Lexer<'s> {
         self.add_token(TokenType::String(string));
     }
 
-    /// `'s` is must used! other is tied with the whole Token, not just source!
+    /// `'s` is must used! otherwise the lexeme is tied with the whole Token, not just source!
     fn pluck(&self) -> &'s str {
         &self.source[self.start..self.current]
     }

@@ -5,12 +5,12 @@ use std::path::Path;
 use loxide::Lexer;
 
 fn main() {
-    let args = env::args();
+    let mut args = env::args();
     match args.size_hint() {
         (1, _) => {
             run_prompt();
         }
-        (2, _) => run_file(Path::new(&args.skip(1).next().unwrap())),
+        (2, _) => run_file(Path::new(&args.nth(1).unwrap())),
         (_, _) => {
             println!("Usage: loxide: loxide [script]");
             std::process::exit(64);
@@ -29,8 +29,8 @@ fn run_prompt() {
         line.clear();
         stdin.read_line(&mut line).unwrap();
 
-        let line = line.trim();
-        if line == ":q" || line == ":quit" {
+        let line_cleaned = line.trim();
+        if line_cleaned == ":q" || line_cleaned == ":quit" {
             break;
         }
         run(&line);
