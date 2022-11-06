@@ -107,7 +107,13 @@ impl<'s> Lexer<'s> {
             // string
             '"' => self.scan_string(),
 
-            x @ _ => eprintln!("Unexpect character {} at line {}", x, self.line), // eprintln and skip it, not stop scanning for report all errors at once
+            x @ _ => {
+                // number
+                if Self::is_digit(x) {
+                    self.scan_number();
+                }
+                eprintln!("Unexpect character {} at line {}", x, self.line); // eprintln and skip it, not stop scanning for report all errors at once
+            }
         }
     }
 
@@ -117,6 +123,32 @@ impl<'s> Lexer<'s> {
             &self.source[self.start..self.current],
             self.line,
         ));
+    }
+
+    fn scan_number(&mut self) {
+        // must match the all happy path
+        // integer(pre '.') part
+        while Self::is_digit(self.peek()) {
+            self.advance();
+        }
+        // look for a fractional part and consume '.'
+        if self.peek() == '.' && Self::is_digit(self.peek_next()) {
+            self.advance();
+        }
+        // the fractional part
+        while Self::is_digit(self.peek()) {
+            self.advance();
+        }
+        // must have token, because we have match a digit then call this function
+        self.add_token(TokenType::Number(
+            self.source[self.start..self.current]
+                .parse()
+                .expect("parse number failed!"),
+        ));
+    }
+
+    fn is_digit(c: char) -> bool {
+        ('0'..='9').contains(&c)
     }
 
     fn scan_string(&mut self) {
@@ -160,6 +192,17 @@ impl<'s> Lexer<'s> {
         c
     }
 
+    // next and next to the coverd
+    fn peek_next(&self) -> char {
+        let index = self.current + 1;
+        if index >= self.source.len() {
+            '\0'
+        } else {
+            self.char_at(index)
+        }
+    }
+
+    // next to the coverd
     fn peek(&self) -> char {
         if self.is_at_end() {
             '\0'
