@@ -2,7 +2,7 @@ use std::env;
 use std::io::{self, BufRead, Write};
 use std::path::Path;
 
-use loxide::{Lexer};
+use loxide::Lexer;
 
 fn main() {
     let args = env::args();
@@ -42,9 +42,9 @@ fn run_prompt() {
 
 fn run(source: &str) {
     println!("{source}");
-    let lexer = Lexer::new(source);
-    let tokens = lexer.parse_tokens();
-    tokens.into_iter().for_each(|tok|println!("{tok}"));
+    let mut lexer = Lexer::new(source);
+    let tokens = lexer.scan_tokens();
+    tokens.into_iter().for_each(|tok| println!("{tok}"));
 }
 
 fn run_file(file: impl AsRef<Path>) {
