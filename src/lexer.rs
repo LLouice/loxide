@@ -156,18 +156,18 @@ impl<'s> Lexer<'s> {
     }
 
     fn scan_number(&mut self, c: char) -> bool {
-        if Self::is_digit(c) {
+        if c.is_ascii_digit() {
             // must match the all happy path
             // integer(pre '.') part
-            while Self::is_digit(self.peek()) {
+            while self.peek().is_ascii_digit() {
                 self.advance();
             }
             // look for a fractional part and consume '.'
-            if self.peek() == '.' && Self::is_digit(self.peek_next()) {
+            if self.peek() == '.' && self.peek_next().is_ascii_digit() {
                 self.advance();
             }
             // the fractional part
-            while Self::is_digit(self.peek()) {
+            while self.peek().is_ascii_digit() {
                 self.advance();
             }
             // must have token, because we have match a digit then call this function
@@ -178,10 +178,6 @@ impl<'s> Lexer<'s> {
         } else {
             false
         }
-    }
-
-    fn is_digit(c: char) -> bool {
-        ('0'..='9').contains(&c)
     }
 
     fn scan_string(&mut self) {
